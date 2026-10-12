@@ -1,6 +1,6 @@
 # MPBCpipe
 
-Version: 1.00  
+Version: 2.00  
 Date: 07.08.2026
 Author: Lea Rachel Rieskamp
 Supervision: Maria Swanberg, Translational Neurogenetics Lab, Lund University
