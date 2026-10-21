@@ -6,6 +6,10 @@ Author: Lea Rachel Rieskamp
 Supervision: Maria Swanberg, Translational Neurogenetics Lab, Lund University
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
+# Table of contents
+
+This version is currently in development and not functional yet.
+For a functional MPBCpipe version please refer to v1: https://github.com/RieskampLR/MPBCPipe-v1
 
 # Table of contents
 
