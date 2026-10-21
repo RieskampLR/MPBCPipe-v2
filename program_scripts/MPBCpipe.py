@@ -29,6 +29,7 @@ Author: Lea Rachel Rieskamp
 from input_setup import parse_arguments, setup_flags
 from data_loader import load_data
 from conflict_catcher import check_conflicts
+from derived_columns.py import generate_derived_columns
 
 
 # 1. Setup
@@ -42,7 +43,7 @@ sortby, pt_time_filter = setup_flags(args)                                      
 ## csv to tsv, standardise formats, column names and IDs
 ## merge hdat and vdat into hvdat
 
-qdat, pdat, hdat, vdat, hvdat, cat, cond = load_data(args)                      # returns data as pd frames (or None if not present)
+qdat, pdat, hdat, vdat, hvdat, cat, cond, dia_cols = load_data(args)                      # returns data as pd frames (or None if not present)
 
                                                                                 # jsons as dictionaries
 # 3. Data conflict catches
@@ -53,6 +54,7 @@ check_conflicts(args, pdat, hvdat, cat, cond)
 # 4. Derived columns
 ## Generate columns based on categories JSON
 
+qdat, hvdat = generate_derived_columns(qdat, hvdat, cat, cond, dia_cols)                  # generated cols are assigned to the table they most relate to
 
 
 # 5. Filtering

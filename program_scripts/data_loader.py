@@ -63,5 +63,16 @@ def load_data(args):
             hvdat["UTDATUMA"] = hvdat["UTDATUMA"].astype("Int64")               # prevent empty entry to 1970-date conversions
     else:
         hvdat = None                                                            # if no diagnosis data provided
+    
+    # Collect dia_cols
+    dia_cols = []
+    if hvdat is not None:
+        dia_cols = [
+            col for col in hvdat.columns
+            if col == "hdia" or (col.startswith("DIA") and col[3:].isdigit())   # isdigit avoids DIA_ANT inclusion
+            ]
+        hvdat[dia_cols] = hvdat[dia_cols].astype("string")                      # All dia entries to strings (entry formats vary)
+        
 
-    return qdat, pdat, hdat, vdat, hvdat, cat, cond
+    return qdat, pdat, hdat, vdat, hvdat, cat, cond, dia_cols
+
