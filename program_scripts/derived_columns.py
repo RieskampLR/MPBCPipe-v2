@@ -6,9 +6,9 @@ derived_columns.py
 
 """
 
-############# diagnosis_vs_inclusion still needed! Below only all_dia func and calling frame work
-
 import pandas as pd
+import re
+
 
 
 def all_diagnoses(hvdat, dia_cols):
@@ -23,7 +23,50 @@ def all_diagnoses(hvdat, dia_cols):
 
     return hvdat
 
-def diagnosis_vs_inclusion(... # ---------------------------------------------------------
+
+
+def diagnosis_vs_inclusion(qdat, hvdat, dia_cols, timing, years, col):
+    # Assign patient's inclusion year and match visits
+    year = qdat.set_index("StudieID")["Inclusion_Year"].astype("Int64")         # assigns inclusion year to StudieID
+    visit_year = hvdat["INDATUMA"].astype("string").str[:4].astype("Int64")     # series containing the years for the visits
+    incl_year = hvdat["StudieID"].map(year)                                     # get incl year for the StudieID via "year"
+
+    # Select the requested time frame
+    if timing == "after":
+        mask = visit_year > incl_year + years
+    elif timing == "at":
+        mask = (visit_year - incl_year).abs() <= years
+    elif timing == "till":
+        mask = visit_year <= incl_year + years
+
+    # Get diagnoses from matching visits
+    result = hvdat.loc[mask, ["StudieID"] + dia_cols].copy()                    # pd frame with dias for visits within the timing condition
+                                                                                # rows where mask is False are excluded from result
+    # Combine diagnosis fields into one column
+    result[col] = (
+        result[dia_cols]
+        .fillna("")
+        .astype(str)
+        .agg(",".join, axis=1)
+        .str.replace(r"(,+)", ",", regex=True)
+        .str.strip(",")
+    )
+
+    result = result[["StudieID", col]]
+
+    # Combine visits into one row per patient
+    result = result.groupby("StudieID", as_index=False).agg({col: ",".join})
+
+    # Remove duplicates and empty entries; keep diagnoses as lists
+    result[col] = result[col].apply(
+        lambda entry: list(set(dia for dia in entry.split(",") if dia))
+    )
+
+    # Add the generated column to qdat
+    qdat = qdat.merge(result, on="StudieID", how="left")
+
+    return qdat
+
 
 
 def generate_derived_columns(qdat, hvdat, cat, cond, dia_cols):                 # func with calling framework for column generations
@@ -34,16 +77,19 @@ def generate_derived_columns(qdat, hvdat, cat, cond, dia_cols):                 
     # All diagnoses per visit
     if "all_diagnoses" in hvdat_cols:
         hvdat = all_diagnoses(hvdat, dia_cols)
+        
+    # Diagnoses relative to inclusion
+    for col in sorted(qdat_cols):
+        match = re.fullmatch(r"Diagnoses_(after|at|till)_incl_(\d+)y", col)     # searching for presence of vs incl time cols
 
-    # Diagnoses relative to inclusion: same function, different timing
-    if "Doctoral_diagnoses_received_after_inclusion_year" in qdat_cols:
-        qdat = diagnosis_vs_inclusion(qdat, hvdat, timing="after")              # diagnosis_vs_inclusion needed
+        if match:
+            # extract timing and years
+            timing = match.group(1)                                             # assigning after/at/till & years to variables
+            years = int(match.group(2))
 
-    if "Doctoral_diagnoses_at_inclusion_+-1year" in qdat_cols:
-        qdat = diagnosis_vs_inclusion(qdat, hvdat, timing="at")                 # diagnosis_vs_inclusion needed
-
-    if "Doctoral_diagnoses_recorded_till_inclusion_+1year" in qdat_cols:
-        qdat = diagnosis_vs_inclusion(qdat, hvdat, timing="upto")               # diagnosis_vs_inclusion needed
+            qdat = diagnosis_vs_inclusion(
+                qdat, hvdat, dia_cols, timing, years, col
+            )
 
 
     return qdat, hvdat
